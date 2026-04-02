@@ -27,14 +27,14 @@ https://github.com/dicodingacademy/dicoding_dataset/tree/main/employee
 
 Persiapan Proyek (Lengkap dan Sistematis):
 
-1. Clone repository lalu masuk ke folder proyek.
+1. Clone repository lalu masuk ke folder proyek. (jika dari github)
 
 ```bash
 git clone <url-repository>
 cd a590_proyek_pertama
 ```
 
-2. Buat virtual environment.
+2. Buat virtual environment.( Jika download dari gdrive, mulai dari sini)
 
 ```bash
 python -m venv .venv
@@ -66,53 +66,19 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-5. Jalankan proyek.
+5. Jalankan proyek. Menjalankan Notebook (utama):
 
-Cara A - Menjalankan Notebook (utama):
-
-File utama analisis pada proyek ini adalah `notebook.ipynb`.
-
-```bash
-jupyter notebook notebook.ipynb
-```
-
-Alternatif jika menggunakan JupyterLab:
-
-```bash
-jupyter lab notebook.ipynb
-```
-
-Cara B - Menjalankan Skrip Python (.py) (opsional, jika menerapkan kriteria saran):
-
-1. Konversi notebook menjadi skrip Python.
-
-```bash
-jupyter nbconvert --to script notebook.ipynb
-```
-
-2. Jalankan file hasil konversi (umumnya bernama `notebook.py`).
-
-```bash
-python notebook.py
-```
-
-Catatan parameter tambahan:
-
-- Skrip saat ini tidak membutuhkan parameter command line tambahan.
-- Jika di kemudian hari menambahkan argumen, gunakan pola berikut:
-
-```bash
-python notebook.py --input employee_data.xlsx --output employee_data_clean.xlsx
-```
+File utama analisis pada proyek ini adalah `notebook.ipynb`. Tekan Run All untuk menjalankan notebook.
 
 ## Business Dashboard
 
 Business dashboard telah dibangun menggunakan Looker Studio untuk memberikan antarmuka visual yang interaktif kepada Manajer HR.
 Dashboard ini dilengkapi dengan filter dinamis (Gender dan Department) dan menyajikan metrik dalam dua fokus utama:
 
-1. High-Level KPI: Menampilkan metrik krusial seperti Total Karyawan (1.470), Rata-rata Masa Kerja (7,01 Tahun), Total Karyawan Resign (179), dan Tingkat Resign/Attrition Rate (16,92%).
+1. Menampilkan metrik krusial seperti Total Karyawan (1.058), Rata-rata Masa Kerja (7,11 Tahun), Total Karyawan Resign (179), dan Tingkat Resign/Attrition Rate (16,92%).
 
 2. Core Drivers Analysis: Menampilkan visualisasi faktor penyebab utama resign, meliputi dampak lembur (OverTime), perbandingan rata-rata gaji bulanan (Monthly Income), distribusi posisi pekerjaan (Job Role) yang paling rentan, serta distribusi tingkat kepuasan kerja (Job Satisfaction).
+
 Tautan Dashboard: [https://lookerstudio.google.com/reporting/29a3c669-9899-49f4-8eef-7da8fc516ae9]
 
 ## Conclusion
