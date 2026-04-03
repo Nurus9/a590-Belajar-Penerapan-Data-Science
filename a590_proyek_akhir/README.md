@@ -90,14 +90,33 @@ Deployment Streamlit Community Cloud:
 4. Deploy dengan requirements.txt.
 
 Link prototype Streamlit:
-1. ISI_LINK_STREAMLIT_DI_SINI
+1.(https://a590-belajar-penerapan-data-science-f5v3gmkbcug8gvrceefbrn.streamlit.app/)
 
 ## Conclusion
-Berdasarkan analisis data dan prototype yang dibangun, risiko dropout mahasiswa berkaitan kuat dengan indikator akademik semester awal, status administrasi biaya kuliah, serta indikator ekonomi/dukungan seperti scholarship holder. Dengan model prediksi, institusi dapat melakukan screening awal terhadap mahasiswa yang berpotensi dropout sebelum kondisi memburuk.
+### 1) Kesimpulan Analisis Faktor Dropout (EDA + Dashboard)
+Berdasarkan EDA pada notebook dan visualisasi dashboard, mahasiswa dengan risiko dropout cenderung memiliki karakteristik berikut:
+1. Performa akademik awal yang lebih rendah, terutama pada nilai dan jumlah mata kuliah lulus di semester 1 dan semester 2.
+2. Hambatan administrasi dan finansial, terutama pada mahasiswa yang belum up-to-date pembayaran tuition fees dan memiliki status debtor.
+3. Variasi risiko antar kelompok mahasiswa (misalnya berdasarkan pola pendaftaran, program studi, serta dukungan beasiswa) yang mengindikasikan perlunya intervensi yang lebih tersegmentasi.
 
-Pendekatan dashboard + machine learning memberikan dua manfaat sekaligus:
-1. Monitoring risiko dropout secara agregat melalui visualisasi.
-2. Prediksi individual untuk mendukung intervensi yang lebih personal.
+Kesimpulan ini menegaskan bahwa dropout bukan hanya isu akademik, tetapi juga berkaitan dengan kondisi administratif dan ekonomi mahasiswa.
+
+### 2) Kesimpulan Performa Model dan Fitur Penting
+Model klasifikasi dilatih ulang dengan data berlabel final saja (Status = Dropout atau Graduate), sedangkan data Enrolled tidak digunakan sebagai data latih agar target prediksi tetap valid.
+
+Hasil evaluasi kuantitatif model:
+1. Accuracy: 0.9063
+2. Precision: 0.8600
+3. Recall: 0.9085
+4. F1-score: 0.8836
+5. ROC-AUC: 0.9569
+
+Fitur yang paling berpengaruh (berdasarkan koefisien absolut Logistic Regression setelah encoding) antara lain:
+1. Variabel terkait program studi (contoh: `Course_171`, `Course_9853`, `Course_9119`).
+2. Variabel terkait mode pendaftaran (contoh: `Application_mode_15`, `Application_mode_26`, `Application_mode_42`).
+3. Variabel status pembayaran kuliah (`Tuition_fees_up_to_date_0` dan `Tuition_fees_up_to_date_1`).
+
+Dengan performa ini, model sudah memadai untuk early warning system dan dapat digunakan untuk membantu prioritisasi intervensi pada mahasiswa berisiko tinggi.
 
 ### Rekomendasi Action Items
 1. Bangun sistem early warning berbasis probabilitas prediksi untuk menandai mahasiswa berisiko tiap awal semester.

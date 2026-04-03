@@ -51,6 +51,7 @@ NUMERICAL_COLUMNS = [
 	"Curricular_units_2nd_sem_approved",
 	"Curricular_units_2nd_sem_grade",
 ]
+TARGET_STATUSES = ["Dropout", "Graduate"]
 
 # ── Human-readable label mappings ────────────────────────────────────────────
 # Untuk memudahkan pengguna dalam memilih opsi, kita buat mapping dari nilai mentah ke label yang lebih deskriptif.
@@ -95,14 +96,18 @@ def make_options(df: pd.DataFrame, col: str) -> dict:
 # fungsi untuk memuat data dengan caching agar tidak perlu reload setiap interaksi
 @st.cache_data
 def load_data() -> pd.DataFrame:
-	data = pd.read_csv(DATA_URL, sep=";")
-	data["is_dropout"] = (data["Status"] == "Dropout").astype(int)
-	return data
+	return pd.read_csv(DATA_URL, sep=";")
+
+
+def prepare_training_data(df: pd.DataFrame) -> pd.DataFrame:
+	train_df = df[df["Status"].isin(TARGET_STATUSES)].copy()
+	train_df["is_dropout"] = (train_df["Status"] == "Dropout").astype(int)
+	return train_df
 
 # fungsi untuk melatih model pipeline dan menghitung metrik evaluasi
-def train_pipeline(df: pd.DataFrame) -> dict:
-	x = df[FEATURE_COLUMNS]
-	y = df["is_dropout"]
+def train_pipeline(train_df: pd.DataFrame) -> dict:
+	x = train_df[FEATURE_COLUMNS]
+	y = train_df["is_dropout"]
 
 	x_train, x_test, y_train, y_test = train_test_split(
 		x,
@@ -151,16 +156,20 @@ def train_pipeline(df: pd.DataFrame) -> dict:
 
 # Fungsi untuk mendapatkan model pipeline dari cache atau melatih ulang jika tidak ada atau versi sklearn berubah
 @st.cache_resource
-def get_model_artifact(df: pd.DataFrame) -> dict:
+def get_model_artifact(train_df: pd.DataFrame) -> dict:
 	if ARTIFACT_PATH.exists():
 		try:
 			artifact = joblib.load(ARTIFACT_PATH)
-			if artifact.get("sklearn_version") == sklearn.__version__:
+			if (
+				artifact.get("sklearn_version") == sklearn.__version__
+				and artifact.get("target_statuses") == TARGET_STATUSES
+			):
 				return artifact
 		except Exception:
 			pass
 
-	artifact = train_pipeline(df)
+	artifact = train_pipeline(train_df)
+	artifact["target_statuses"] = TARGET_STATUSES
 	ARTIFACT_PATH.parent.mkdir(parents=True, exist_ok=True)
 	joblib.dump(artifact, ARTIFACT_PATH)
 	return artifact
@@ -283,18 +292,19 @@ def dropout_distribution_chart(df: pd.DataFrame) -> go.Figure:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 # Untuk membuat KPI
-def render_overview(df: pd.DataFrame, metrics: dict) -> None:
+def render_overview(raw_df: pd.DataFrame, train_df: pd.DataFrame, metrics: dict) -> None:
 	col1, col2, col3, col4, col5 = st.columns(5)
-	col1.metric("Jumlah Mahasiswa", f"{len(df):,}")
-	col2.metric("Dropout Rate", f"{df['is_dropout'].mean() * 100:.1f}%")
+	col1.metric("Jumlah Mahasiswa", f"{len(raw_df):,}")
+	col2.metric("Data Latih (Dropout+Graduate)", f"{len(train_df):,}")
 	col3.metric("Akurasi Model", f"{metrics['accuracy']:.2f}")
 	col4.metric("F1 Score", f"{metrics['f1_score']:.2f}")
 	col5.metric("ROC-AUC", f"{metrics['roc_auc']:.2f}")
 
 # Fungsi untuk merender distribusi dropout dengan chart Plotly
-def render_distribution(df: pd.DataFrame) -> None:
+def render_distribution(train_df: pd.DataFrame) -> None:
 	st.subheader("Distribusi Status Dropout")
-	st.plotly_chart(dropout_distribution_chart(df), use_container_width=True)
+	st.caption("Distribusi ini hanya menggunakan data berlabel final: Dropout vs Graduate.")
+	st.plotly_chart(dropout_distribution_chart(train_df), use_container_width=True)
 
 # Fungsi untuk merender form prediksi risiko dropout mahasiswa, mengambil input dari pengguna, memprediksi probabilitas dropout, dan memberikan rekomendasi tindakan berdasarkan hasil prediksi.
 def render_prediction_form(df: pd.DataFrame, model) -> None:
@@ -387,14 +397,15 @@ def main() -> None:
 	st.title("🎓 Student Dropout Monitoring & Prediction")
 	st.caption("Prototype machine learning untuk memprediksi probabilitas mahasiswa dropout.")
 
-	df = load_data()
-	artifact = get_model_artifact(df)
+	raw_df = load_data()
+	train_df = prepare_training_data(raw_df)
+	artifact = get_model_artifact(train_df)
 	model = artifact["pipeline"]
 	metrics = artifact["metrics"]
 
-	render_overview(df, metrics)
-	render_distribution(df)
-	render_prediction_form(df, model)
+	render_overview(raw_df, train_df, metrics)
+	render_distribution(train_df)
+	render_prediction_form(raw_df, model)
 
 
 if __name__ == "__main__":

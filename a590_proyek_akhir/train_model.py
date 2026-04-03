@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import joblib
+import numpy as np
 import pandas as pd
 import sklearn
 from sklearn.compose import ColumnTransformer
@@ -40,14 +41,48 @@ CATEGORICAL_COLUMNS = [
     "Gender",
     "Scholarship_holder",
 ]
+TARGET_STATUSES = ["Dropout", "Graduate"]
+
+
+def prepare_training_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep only final labels so the classifier learns a valid binary target."""
+    train_df = df[df["Status"].isin(TARGET_STATUSES)].copy()
+    train_df["is_dropout"] = (train_df["Status"] == "Dropout").astype(int)
+    return train_df
+
+
+def extract_feature_importance(pipeline: Pipeline, top_n: int = 10) -> list[dict]:
+    """Return top absolute logistic coefficients with their sign."""
+    model = pipeline.named_steps["model"]
+    preprocess = pipeline.named_steps["preprocess"]
+    feature_names = preprocess.get_feature_names_out()
+    coefficients = model.coef_.ravel()
+
+    importance_df = pd.DataFrame(
+        {
+            "feature": feature_names,
+            "coefficient": coefficients,
+            "abs_coefficient": np.abs(coefficients),
+        }
+    ).sort_values("abs_coefficient", ascending=False)
+
+    top_features = importance_df.head(top_n)
+    return [
+        {
+            "feature": row["feature"],
+            "coefficient": float(row["coefficient"]),
+            "abs_coefficient": float(row["abs_coefficient"]),
+        }
+        for _, row in top_features.iterrows()
+    ]
 
 
 def main() -> None:
     df = pd.read_csv(DATA_URL, sep=";")
-    df["is_dropout"] = (df["Status"] == "Dropout").astype(int)
+    train_df = prepare_training_data(df)
 
-    x = df[FEATURE_COLUMNS]
-    y = df["is_dropout"]
+    x = train_df[FEATURE_COLUMNS]
+    y = train_df["is_dropout"]
 
     x_train, x_test, y_train, y_test = train_test_split(
         x,
@@ -88,18 +123,28 @@ def main() -> None:
         "roc_auc": float(roc_auc_score(y_test, y_prob)),
     }
 
+    feature_importance = extract_feature_importance(pipeline)
+    class_distribution = train_df["Status"].value_counts().to_dict()
+
     ARTIFACT_PATH.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(
         {
             "pipeline": pipeline,
             "metrics": metrics,
+            "feature_importance": feature_importance,
+            "training_rows": int(len(train_df)),
+            "class_distribution": class_distribution,
+            "target_statuses": TARGET_STATUSES,
             "sklearn_version": sklearn.__version__,
         },
         ARTIFACT_PATH,
     )
 
     print("Model artifact saved:", ARTIFACT_PATH)
+    print("Training statuses:", TARGET_STATUSES)
+    print("Training rows:", len(train_df))
     print("Metrics:", metrics)
+    print("Top feature importance:", feature_importance)
 
 
 if __name__ == "__main__":
